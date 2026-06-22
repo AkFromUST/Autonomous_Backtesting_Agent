@@ -1,8 +1,10 @@
-# NineMasts Quant Paper Backtesting Agent — Prototype 1
+# Quant Paper Autonomous Backtesting Agent — Prototype 1
 
 Fully autonomous pipeline: feed in an arXiv paper URL, get a backtest report out. No human steps in the loop.
 
-Built as a proof-of-concept for autonomous quantitative research replication. The agent reads a strategy paper, extracts the algorithm, fetches the required market data, writes and self-corrects a vectorbt backtest, validates the output, and produces a markdown report — end to end.
+Built as a proof-of-concept for autonomous quantitative research replication. The agent reads a strategy paper, extracts the algorithm, fetches the required market data, writes and self-corrects a vectorbt backtest, validates the output, and produces a markdown report — end to end. 
+
+As a prototype, the objective was to engineer the foundational layer where we leverage harness, reinforcement_loop and create the 2 phases, data_fetching and backtesting. The current prototype can handle easy-medium papers but don't rely on its output 100% as it is still in developement.
 
 ---
 
