@@ -1,0 +1,18 @@
+# API keys — never commit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+
+# macOS
+.DS_Store
+
+
+# Keep the output directory structure
+!outputs/reports/.gitkeep
+!outputs/backtests/.gitkeep
+!outputs/data/.gitkeep
+!outputs/openhands_logs/.gitkeep

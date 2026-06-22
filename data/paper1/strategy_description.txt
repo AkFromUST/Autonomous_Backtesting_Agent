@@ -1,0 +1,31 @@
+## Strategy: Ornstein-Uhlenbeck (OU) Pairs Trading on S&P 500
+
+### 1. Universe
+All S&P 500 constituents (~500 US equities). Daily OHLCV data, 2010-01-01 to 2023-01-01.
+
+### 2. Pair Selection (training window: 2018–2020)
+Compute Mean Squared Distance (MSD) for all candidate pairs:
+    d_ij = (1/N) * sum((R_i,t - R_j,t)^2)
+where R_i,t is the daily return of stock i at time t.
+Select pairs with the smallest d_ij; enforce one-to-one mapping (each stock in at most one pair).
+Alternative filter: Engle-Granger cointegration test (OLS residuals, p-value < 0.05).
+
+### 3. Spread and OU Model
+Spread: S_ij,t = P_i,t - P_j,t  (price difference of closing prices)
+Fit OU process: dS_t = lambda*(mu - S_t)*dt + sigma*dW_t
+Discretized AR(1): S_{t+1} = a*S_t + b + eps_t
+Parameters recovered as:
+    lambda = -ln(a) / delta,  mu = b / (1-a),
+    sigma  = std(eps) * sqrt(-2*ln(a) / (delta*(1-a^2)))
+where delta = 1 (daily sampling).
+
+### 4. Signal Generation (rolling, point-in-time)
+Z-score: Z_t = (S_t - mu) / sigma
+Map Z_t to empirical percentile using a rolling 90-day window (no future data).
+Entry:  short spread when percentile > 75%; long spread when percentile < 25%.
+Exit:   when percentile crosses 50% (mean reversion complete).
+
+### 5. Execution
+Daily rebalancing; positions entered the next trading day after signal.
+No transaction costs. Full position on the spread (long one leg, short the other).
+Out-of-sample test: post-2020. OU parameters estimated on 2018–2020 training window only.

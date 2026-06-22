@@ -1,0 +1,90 @@
+=== Implementation Details ===
+**Pair‑selection metric**  
+For each candidate pair \((i,j)\) the squared mean‑squared distance (MSD) is computed on the training window (2018‑2020):  
+
+\[
+d_{ij}= \frac{1}{N}\sum_{t=1}^{N}\bigl(R_{i,t}-R_{j,t}\bigr)^{2},
+\]
+
+where \(R_{i,t}\) and \(R_{j,t}\) are the daily returns of securities \(i\) and \(j\) at time \(t\) and \(N\) is the number of observations in the look‑back period (pqac‑a14f8a6b). The pairs with the smallest \(d_{ij}\) are retained, enforcing a one‑to‑one mapping (each firm appears only once) (pqac‑5f380ba6).
+
+**Cointegration filter (alternative)**  
+An OLS regression of \(R_{i}\) on \(R_{j}\) is run; the residuals are subjected to a stationarity test (p‑value < 0.05) and only those pairs are kept (pqac‑5f380ba6).
+
+**Spread definition**  
+The raw spread is the price difference  
+
+\[
+S_{ij,t}=P_{i,t}-P_{j,t},
+\]
+
+where \(P_{i,t}\) and \(P_{j,t}\) are closing prices aligned to the same timestamp (pqac‑5f380ba6).
+
+**OU‑process model**  
+The continuous‑time Ornstein‑Uhlenbeck dynamics are  
+
+\[
+dS_t = \lambda(\mu - S_t)\,dt + \sigma\,dW_t,
+\]
+
+discretised as  
+
+\[
+S_{t+1}= a\,S_t + b + \varepsilon_t,
+\qquad 
+a = e^{-\lambda\delta},\;
+b = \mu\bigl(1-e^{-\lambda\delta}\bigr),\;
+\varepsilon_t\sim N\!\bigl(0,\;\sigma^{2}\tfrac{1-e^{-2\lambda\delta}}{2\lambda}\bigr),
+\]
+
+with \(\delta\) the sampling interval (daily). Parameters are recovered by  
+
+\[
+\lambda = -\frac{\ln a}{\delta},\;
+\mu = \frac{b}{1-a},\;
+\sigma = \operatorname{sd}(\varepsilon_t)\sqrt{\frac{-2\ln a}{\delta(1-a^{2})}}.
+\]  
+(pqac‑5f380ba6).
+
+**Z‑score and percentile signal**  
+The OU‑model z‑score is  
+
+\[
+Z_t = \frac{S_t - \mu}{\sigma}.
+\]
+
+A rolling 90‑day window (point‑in‑time) is used to map \(Z_t\) to its empirical percentile; only past observations are included (no future data) (pqac‑5f380ba6, pqac‑8606f9b6). Entry rules: short when the percentile > 75 % (i.e., \(Z_t\) above the 75th percentile), long when percentile < 25 % (pqac‑8606f9b6). Positions are closed when the percentile crosses 50 % (or when \(Z_t\) reverts to the exit band) (pqac‑5f380ba6, pqac‑8606f9b6).
+
+**Data alignment & information set**  
+All price and return series are merged on Infocode/DScode, de‑duplicated, and synchronized to identical timestamps; only variables observable at time \(t\) (prices, returns, rolling means/variances, OU parameters estimated on a training window that ends at \(t\)) are used for decisions. The next‑day price \(P_{t+1}\) is unknown at decision time (pqac‑a14f8a6b, pqac‑5f380ba6).
+
+**Training / test split**  
+Parameters are estimated on the 2018‑2020 window; the subsequent period (post‑2020) serves as the out‑of‑sample test set (pqac‑a14f8a6b). The authors caution against using data beyond the training window for parameter estimation to avoid forward‑looking bias (pqac‑a14f8a6b, pqac‑8606f9b6).
+
+**Look‑back windows**  
+* Rolling mean/standard deviation for the naive benchmark: 30 days (pqac‑5f380ba6).  
+* OU‑parameter estimation window: unspecified but must precede the test period.  
+* Percentile calculation window: 90 days, point‑in‑time (pqac‑5f380ba6, pqac‑8606f9b6).
+
+**Rebalancing frequency**  
+Signals are evaluated daily; positions are entered the next trading day and exited when the exit condition is met, implying daily rebalancing (pqac‑5f380ba6, pqac‑8606f9b6).
+
+**Implementation warnings / caveats**  
+* Potential forward‑look bias if future values enter the percentile or rolling statistics.  
+* Non‑stationary pairs may erode mean‑reversion; authors recommend Augmented Dickey‑Fuller tests and re‑tuning thresholds.  
+* Cointegration test performed on pre‑COVID data may not hold post‑pandemic.  
+* No transaction costs are modeled; results are preliminary and not financial advice.  
+* Industry relevance of pairs should be manually verified; each firm may appear only once. (pqac‑a14f8a6b, pqac‑5f380ba6, pqac‑8606f9b6)
+
+=== Backtesting Methodology ===
+The paper does not disclose a precise test‑period window; the authors only state that the cointegration test used data from 2018‑2020 and that the backtest “appears to use data after that period” without specifying exact dates (suchato2024anapplicationof pages 4-5). Consequently, no explicit in‑sample versus out‑of‑sample split is reported (suchato2024anapplicationof pages 4-5, suchato2024anapplicationof pages 5-13, suchato2024anapplicationof pages 2-4).
+
+No external benchmark index is employed. The only comparison is to a “standard” pairs‑trading strategy, which serves as the sole baseline (suchato2024anapplicationof pages 4-5).
+
+Transaction costs and slippage are explicitly omitted; the simulation assumes cost‑free trades and that positions are small enough not to impact market prices (suchato2024anapplicationof pages 4-5, suchato2024anapplicationof pages 5-13).
+
+Position sizing is described only qualitatively: the strategy takes a “full long or short position on the spread” when the Ornstein‑Uhlenbeck (OU) z‑score crosses the 25th or 75th percentile and exits at the 50th percentile, but the exact capital allocation or weighting scheme is not provided (suchato2024anapplicationof pages 4-5). No leverage or risk‑adjustment rules are detailed.
+
+Rebalancing frequency is not stated; trades are assumed to occur the next day after a signal, implying a daily rebalancing cadence, but this is not explicitly confirmed (suchato2024anapplicationof pages 5-13).
+
+Specific backtest construction choices include: (1) splitting data into a training set for fitting the OU and AR(1) models and a test set for performance evaluation, though dates are unspecified (suchato2024anapplicationof pages 4-5); (2) using Engle‑Granger cointegration (p‑value < 0.05) for pair selection (suchato2024anapplicationof pages 2-4); (3) computing z‑score thresholds from the 25th/75th percentiles of a 90‑day rolling window (suchato2024anapplicationof pages 2-4); and (4) treating the OU‑model thresholds as arbitrary and suggesting future hyper‑parameter tuning (suchato2024anapplicationof pages 4-5).

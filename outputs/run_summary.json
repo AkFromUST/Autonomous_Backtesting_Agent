@@ -1,0 +1,15 @@
+[
+  {
+    "paper_id": "2412.12458v1",
+    "title": "2412.12458v1",
+    "status": "DONE",
+    "checker_verdict": "PASS",
+    "metrics": {
+      "sharpe": 0.058164,
+      "total_return": -0.219882,
+      "annual_return": -0.116975
+    },
+    "report_path": "/Users/aarav/Developer/Applications/NineMasts_ColdEmail/prototype_1/outputs/reports/2412.12458v1.md",
+    "timestamp": "2026-06-22 16:04 UTC"
+  }
+]
